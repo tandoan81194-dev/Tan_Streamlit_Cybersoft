@@ -1,1 +1,9 @@
-#This is Streamlit app
+import streamlit as st
+
+st.set_page_config(
+    page_title="Ask your CSV",
+    page_icon= "📊",
+    layout="wide"
+)
+
+st.title("Ask your CSV")
