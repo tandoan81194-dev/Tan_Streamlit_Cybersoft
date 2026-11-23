@@ -1,0 +1,2 @@
+#This is the folders/ files won't be published on Git.
+.streamlit/secrets.toml
