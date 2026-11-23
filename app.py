@@ -6,6 +6,13 @@ st.set_page_config(
     page_icon= "📊",
     layout="wide"
 )
+#Session state initialization:
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "df" not in st.session_state:
+    st.session_state.df = None 
+if "data_summary" not in st.session_state:
+    st.session_state.data_summary = None
 
 st.title("Ask your CSV")
 st.markdown("Upload your data and ask questions in plain English!")
@@ -38,3 +45,35 @@ with st.sidebar:
             st.info("Please make sure your file is a valid CSV format.")
     else:
         st.info("Upload a CSV file to start analyzing!")
+
+#Main chat interface
+if st.session_state.df is not None:
+    #Display chat history:
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    #Chat input 
+    user_input = st.chat_input("Ask a question about your data")
+
+    if user_input:
+        #Add user message to history
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        #Display user message
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+    else:
+        #No data uploaded state:
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            st.info("Please upload a CSV file to start!")
+            #Example questions:
+            st.markdown("### Example questions you can ask: ")
+            st.markdown("""
+            - What are the main trends in my data?
+            - Show me a correlation matrix
+            - Create a bar chart of the top 10 categories
+            - What's the average value by month?
+            - Are there any outliers in the price column?
+            """)
