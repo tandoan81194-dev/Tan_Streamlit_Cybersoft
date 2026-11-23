@@ -31,6 +31,16 @@ with st.sidebar:
         try:
             df = pd.read_csv(uploaded_file)
             st.session_state.df = df
+
+            #Create data summary for token optimization:
+            st.session_state.data_summary = {
+                "shape": df.shape,
+                "columns": df.columns.tolist(),
+                "dtypes": df.dtypes.to_dict(),
+                "sample": df.head(3).to_dict(),
+                "stats": df.describe().to_dict() if not df.empty else {}
+            }
+
             st.success(f"Loaded {df.shape[0]} rows x {df.shape[1]} columns.")
 
             #Data preview
@@ -69,6 +79,55 @@ if st.session_state.df is not None:
         with st.chat_message("user"):
             st.markdown(user_input)
 
+        #Prepare data context with token optimization:
+        df = st.session_state.df #Gán ngược lại DF của session vào biến df
+        if len(df) > 100:
+            data_context = f"""
+            Dataset shape: {st.session_state.data_summary['shape']}
+            Columns: {', '.join(st.session_state.data_summary['columns'])}
+            Data types: {st.session_state.data_summary['dtypes']}
+            Sample rows: {st.session_state.data_summary['sample']}
+            Basic statistics: {st.session_state.data_summary['stats']}
+            """
+        else:
+            data_context = f"""
+            Full dataset:
+            {df.to_string()}
+            """
+
+        #System prompt:
+        system_prompt = f"""
+        You are a helpful data analyst assistant.
+        
+        The user has uploaded a CSV file with the following information:
+        {data_context}
+
+        Guidelines:
+        1. Answer the user's question clearly and concisely
+        2. Focus on providing insights about the data
+        3. Be specific and helpful 
+        """
+
+        #Generate response:
+        with st.chat_message("assistant"):
+            with st.spinner("Analyzing your data..."):
+                try:
+                    response = client.chat.completions.create(
+                        model = 'gpt-6-luna',
+                        messages= [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_input}
+                        ],
+                        max_completion_tokens= 1500 #kết quả dưới 1500 từ
+                    )
+                    reply = response.choices[0].message.content
+                    st.markdown(reply)
+
+                    # Save assistant response to history
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
+                except Exception as e:
+                    st.error(f"Error generating response: {str(e)}")
+                    st.info("Please try again or rephrase your question.")
     else:
         #No data uploaded state:
         col1, col2, col3 = st.columns([1,2,1])
